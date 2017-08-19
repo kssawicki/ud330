@@ -1,23 +1,24 @@
-from flask import Flask, render_template, request, redirect, jsonify, url_for, flash
-from sqlalchemy import create_engine, asc
-from sqlalchemy.orm import sessionmaker
-from database_setup import Base, Restaurant, MenuItem, User
-from flask import session as login_session
+import json
 import random
 import string
-from oauth2client.client import flow_from_clientsecrets
-from oauth2client.client import FlowExchangeError
+
 import httplib2
-import json
-from flask import make_response
 import requests
+from flask import Flask, render_template, request, redirect, jsonify, url_for, flash
+from flask import make_response
+from flask import session as login_session
+from oauth2client.client import FlowExchangeError
+from oauth2client.client import flow_from_clientsecrets
+from sqlalchemy import create_engine, asc
+from sqlalchemy.orm import sessionmaker
+
+from database_setup import Base, Restaurant, MenuItem, User
 
 app = Flask(__name__)
 
 CLIENT_ID = json.loads(
     open('client_secrets.json', 'r').read())['web']['client_id']
 APPLICATION_NAME = "Restaurant Menu Application"
-
 
 # Connect to Database and create database session
 engine = create_engine('sqlite:///restaurantmenuwithusers.db')
@@ -46,7 +47,6 @@ def fbconnect():
     access_token = request.data
     print("access token received %s " % access_token)
 
-
     app_id = json.loads(open('fb_client_secrets.json', 'r').read())[
         'web']['app_id']
     app_secret = json.loads(
@@ -55,7 +55,6 @@ def fbconnect():
         app_id, app_secret, access_token)
     h = httplib2.Http()
     result = h.request(url, 'GET')[1]
-
 
     # Use token to get user info from API
     userinfo_url = "https://graph.facebook.com/v2.8/me"
@@ -114,7 +113,7 @@ def fbdisconnect():
     facebook_id = login_session['facebook_id']
     # The access token must me included to successfully logout
     access_token = login_session['access_token']
-    url = 'https://graph.facebook.com/%s/permissions?access_token=%s' % (facebook_id,access_token)
+    url = 'https://graph.facebook.com/%s/permissions?access_token=%s' % (facebook_id, access_token)
     h = httplib2.Http()
     result = h.request(url, 'DELETE')[1]
     return "you have been logged out"
@@ -211,12 +210,13 @@ def gconnect():
     print("done!")
     return output
 
+
 # User Helper Functions
 
 
 def createUser(login_session):
     newUser = User(name=login_session['username'], email=login_session[
-                   'email'], picture=login_session['picture'])
+        'email'], picture=login_session['picture'])
     session.add(newUser)
     session.commit()
     user = session.query(User).filter_by(email=login_session['email']).one()
@@ -234,6 +234,7 @@ def getUserID(email):
         return user.id
     except:
         return None
+
 
 # DISCONNECT - Revoke a current user's token and reset their login_session
 
@@ -256,11 +257,11 @@ def gdisconnect():
         del login_session['username']
         del login_session['email']
         del login_session['picture']
-        response = make_response(json.dumps('Successfully disconnected.'), 200)
+        response = make_response(json.dumps('Successfully disconnected.'))
         response.headers['Content-Type'] = 'application/json'
         return response
     else:
-        response = make_response(json.dumps('Failed to revoke token for given user.', 400))
+        response = make_response(json.dumps('Failed to revoke token for given user.'))
         response.headers['Content-Type'] = 'application/json'
         return response
 
@@ -296,6 +297,7 @@ def showRestaurants():
     else:
         return render_template('restaurants.html', restaurants=restaurants)
 
+
 # Create a new restaurant
 
 
@@ -312,6 +314,7 @@ def newRestaurant():
         return redirect(url_for('showRestaurants'))
     else:
         return render_template('newRestaurant.html')
+
 
 # Edit a restaurant
 
@@ -350,6 +353,7 @@ def deleteRestaurant(restaurant_id):
     else:
         return render_template('deleteRestaurant.html', restaurant=restaurantToDelete)
 
+
 # Show a restaurant menu
 
 
@@ -376,13 +380,14 @@ def newMenuItem(restaurant_id):
         return "<script>function myFunction() {alert('You are not authorized to add menu items to this restaurant. Please create your own restaurant in order to add items.');}</script><body onload='myFunction()''>"
         if request.method == 'POST':
             newItem = MenuItem(name=request.form['name'], description=request.form['description'], price=request.form[
-                               'price'], course=request.form['course'], restaurant_id=restaurant_id, user_id=restaurant.user_id)
+                'price'], course=request.form['course'], restaurant_id=restaurant_id, user_id=restaurant.user_id)
             session.add(newItem)
             session.commit()
             flash('New Menu %s Item Successfully Created' % (newItem.name))
             return redirect(url_for('showMenu', restaurant_id=restaurant_id))
     else:
         return render_template('newmenuitem.html', restaurant_id=restaurant_id)
+
 
 # Edit a menu item
 
@@ -436,8 +441,10 @@ def disconnect():
     if 'provider' in login_session:
         if login_session['provider'] == 'google':
             gdisconnect()
-            del login_session['gplus_id']
-            del login_session['credentials']
+            if login_session.get('gplus_id'):
+                del login_session['gplus_id']
+            if login_session.get('credentials'):
+                del login_session['credentials']
         if login_session['provider'] == 'facebook':
             fbdisconnect()
             del login_session['facebook_id']
