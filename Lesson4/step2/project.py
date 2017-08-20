@@ -295,10 +295,7 @@ def restaurantsJSON():
 @app.route('/restaurant/')
 def showRestaurants():
     restaurants = session.query(Restaurant).order_by(asc(Restaurant.name))
-    if 'username' not in login_session:
-        return render_template('publicrestaurants.html', restaurants=restaurants)
-    else:
-        return render_template('restaurants.html', restaurants=restaurants)
+    return render_template('restaurants.html', restaurants=restaurants, login_session=login_session)
 
 
 # Create a new restaurant
@@ -324,19 +321,19 @@ def newRestaurant():
 
 @app.route('/restaurant/<int:restaurant_id>/edit/', methods=['GET', 'POST'])
 def editRestaurant(restaurant_id):
-    editedRestaurant = session.query(
+    edited_restaurant = session.query(
         Restaurant).filter_by(id=restaurant_id).one()
     if 'username' not in login_session:
         return redirect('/login')
-    if editedRestaurant.user_id != login_session['user_id']:
+    if edited_restaurant.user_id != login_session['user_id']:
         return "<script>function myFunction() {alert('You are not authorized to edit this restaurant. Please create your own restaurant in order to edit.');}</script><body onload='myFunction()''>"
     if request.method == 'POST':
         if request.form['name']:
-            editedRestaurant.name = request.form['name']
-            flash('Restaurant Successfully Edited %s' % editedRestaurant.name)
+            edited_restaurant.name = request.form['name']
+            flash('Restaurant Successfully Edited %s' % edited_restaurant.name)
             return redirect(url_for('showRestaurants'))
     else:
-        return render_template('editRestaurant.html', restaurant=editedRestaurant)
+        return render_template('editRestaurant.html', restaurant=edited_restaurant)
 
 
 # Delete a restaurant
@@ -367,10 +364,7 @@ def showMenu(restaurant_id):
     creator = getUserInfo(restaurant.user_id)
     items = session.query(MenuItem).filter_by(
         restaurant_id=restaurant_id).all()
-    if 'username' not in login_session or creator.id != login_session['user_id']:
-        return render_template('publicmenu.html', items=items, restaurant=restaurant, creator=creator)
-    else:
-        return render_template('menu.html', items=items, restaurant=restaurant, creator=creator)
+    return render_template('menu.html', items=items, restaurant=restaurant, creator=creator, login_session=login_session)
 
 
 # Create a new menu item
