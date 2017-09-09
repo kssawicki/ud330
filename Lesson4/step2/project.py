@@ -311,10 +311,10 @@ def new_restaurant():
 
 @app.route('/restaurant/<int:restaurant_id>/edit/', methods=['GET', 'POST'])
 def edit_restaurant(restaurant_id):
-    edited_restaurant = session.query(
-        Restaurant).filter_by(id=restaurant_id).one()
     if 'username' not in login_session:
         return redirect('/login')
+    edited_restaurant = session.query(
+        Restaurant).filter_by(id=restaurant_id).one()
     if edited_restaurant.user_id != login_session['user_id']:
         return "<script>function myFunction() {" \
                "alert('You are not authorized to edit this restaurant. " \
@@ -341,6 +341,9 @@ def delete_restaurant(restaurant_id):
                "Please create your own restaurant in order to delete.');}</script><body onload='myFunction()''>"
     if request.method == 'POST':
         session.delete(restaurant_to_delete)
+        menu_items_to_delete = session.query(MenuItem).filter_by(restaurant_id=restaurant_id).all()
+        for del_menu in menu_items_to_delete:
+            session.delete(del_menu)
         flash('%s Successfully Deleted' % restaurant_to_delete.name)
         session.commit()
         return redirect(url_for('show_restaurants', restaurant_id=restaurant_id))
